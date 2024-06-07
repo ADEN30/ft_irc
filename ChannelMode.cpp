@@ -75,19 +75,14 @@ void Server::modeChannel(User &user)
 	std::string _rpl = "";
 	size_t _index = 0;
 	Chan* _here = already_channel(to_upper(_cmdparse[1]));
-	(void)user;
 
 	std::cout << _cmdparse[1] << &_here << std::endl;
 	if (!(_here))
-	{
-		std::cout << "Unknown channel" << std::endl;
 		throw( ERR_NOSUCHCHANNEL(this, user.get_name(), _cmdparse[1]));
-	}
-	if (_cmdparse.size() == 2)
-	{
-		std::cout << "No mode" << std::endl;
+	else if (_cmdparse.size() == 2)
 		throw(RPL_CHANNELMODEIS(this, user.get_name(), _here->get_name(), _here->get_mode(), rplLKO(_here->get_mode(), _here)));
-	}
+	else if (!_here->findoperator(&user))
+		throw (ERR_CHANOPRIVSNEEDED(this, user.get_name(), _here->get_name()));
 	_index = _cmdparse[2].find_first_not_of("+-", _index);	
 	while (_index != std::string::npos && _sign != '\0')
 	{
@@ -98,10 +93,8 @@ void Server::modeChannel(User &user)
 		else
 			_sign = '\0';
 		_cmdparse[2] = _cmdparse[2].substr(_index, _cmdparse[2].size() - _index);
-		std::cout << "substr: " << _cmdparse[2] << std::endl;
 		parse_lk(_cmdparse, _here, _sign);
 		_rpl += parseMode(_sign, _cmdparse[2].substr(0, _cmdparse[2].size()), _here);
-		std::cout << "new channel mode: " << _here->get_mode() << std::endl;
 		_index = _cmdparse[2].find_first_not_of("+-", _index++);	
 	}
 	_rpl += rplLKO(_cmdparse[2], _here);

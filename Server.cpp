@@ -261,13 +261,13 @@ std::ostream& operator<<(std::ostream & f, Server &s)
 
 int Server::find_cmds()
 {
-	const char* tab[] = {"NICK", "USER", "PING", "PONG", "JOIN", "MODE", "PASS"};
+	const char* tab[] = {"NICK", "USER", "PING", "PONG", "JOIN", "MODE", "PASS", "INVITE", "TOPIC"};
 	std::list<std::string> _cmds(tab, tab + sizeof(tab) / sizeof(char*) );
 	std::list<std::string>::iterator _it;
 	int i = 0;
 	for (_it = _cmds.begin(); _it != _cmds.end(); _it++)
 	{
-		if (_cmd.compare(0, 4, *_it) == 0)
+		if (_cmdparse[0].compare(0, _cmdparse[0].size(), *_it) == 0)
 			return (i);
 		i++;
 	}
@@ -362,8 +362,6 @@ void Server::cmds_register(User &user)
 		case 6:
 		{
 			pass_cmd(user);
-
-
 		}
 		default:
 			break;
@@ -429,6 +427,11 @@ void Server::run_order(User &user)
 				modeChannel(user);
 			break ;
 		}
+		case 7:
+			invite(user);
+			break ;
+		case 8:
+			topic(user);
 		default:
 			break;
 		}
@@ -478,15 +481,12 @@ void Server::user(User &user)
 		return ;
 	if (_cmdparse.size() < 5)
 	{
-		std::cout << "you forgot the parameter" << std::endl;
 		return ;
 	}
 	if(_cmdparse[1].size() > 0 && _cmdparse[4].size() > 0)
 	{
 		user.set_username(_cmdparse[1]);
 		user.set_realname(_cmdparse[4]);
-		std::cout << "Username: " << _cmdparse[1] << std::endl;
-		std::cout << "Realname: " << _cmdparse[4] << std::endl;
 	}
 	if(!user.get_name().empty() && !user.get_username().empty())
 	{
@@ -569,7 +569,8 @@ void Server::join(User &user)
 		else
 		{
 			_channelname = _cmdparse[1].substr(_indexchannelname, _cmdparse[1].length() - _indexchannelname);
-			if(!_cmdparse[2].empty())
+			std::cout << "_cmdparse[2]: " << _cmdparse[2] << std::endl;
+			if(_cmdparse.size() == 3)
 				_passwordchannel = _cmdparse[2].substr(_indexpaswordchannel, _cmdparse[2].length() - _indexpaswordchannel);
 			else
 				_passwordchannel.clear();
@@ -582,13 +583,11 @@ void Server::join(User &user)
 		{
 			_channel = new Chan(user, _channelname, _passwordchannel);
 			_chan.push_back(_channel);
-			user.set_channel(*_channel);
-			
+			user.set_channel(*_channel);	
 		}
 		else
 		{
-			std::cout << "channel password: " << _channel->get_password() << " compare to password: " << _passwordchannel << std::endl;
-			if (_channel->get_limuser() > 0 && _channel->get_limuser() >= _channel->get_mapuser().size() + 1)
+			if (_channel->get_limuser() > 0 && _channel->get_limuser() < _channel->get_mapuser().size() + 1)
 				throw (ERR_CHANNELISFULL(this, user.get_name(), _channelname));
 			else if (_channel->get_mode().find('i') != std::string::npos)
 				throw (ERR_INVITEONLYCHAN(this, _channel->get_name(), _channelname));
@@ -599,10 +598,16 @@ void Server::join(User &user)
 			_channel->add_user(&user);
 		}
 		set_rpl(RPL_JOIN(this, user.get_name(), _channelname));
+		_channel->send_msg_to(_sendfd, user.getpollfd().fd);
+		if (_sendfd.size() > 1)
+		{
+			sendfds_serv();
+			_sendfd.erase(_sendfd.begin() + 1);
+		}
 		set_rpl(RPL_MODECHANNELSERVEUR(this, _channel->get_name(), _channel->get_mode()));
 		set_rpl(RPL_NAMREPLY(this, user.get_name(), _channel->get_name(), _channel->string_for_rpl()));
-		set_rpl(RPL_ENDOFNAMES(this, user.get_name(), _channel->get_name()));
-		
+		set_rpl(RPL_ENDOFNAMES(this, user.get_name(), _channel->get_name()));	
+		sendfds_serv();
 	}
 }
 
@@ -617,4 +622,41 @@ void Server::pass_cmd(User &user)
 		throw(ERR_PASSWDMISSMATCH(user.get_name(), this));
 	user.setflag(1);
 
+}
+
+void Server::invite(User &user)
+{
+	if (_cmdparse.size() < 3)
+		throw(ERR_NEEDMOREPARAMS(user.get_name(), this));
+	Chan* _channel = already_channel(to_upper(_cmdparse[2]));
+	if (!_channel)
+		throw(ERR_NOSUCHCHANNEL(this, user.get_name(), _cmdparse[2]));
+	else if (!_channel->findoperator(&user) && _channel->get_mode().find('i') != std::string::npos)
+		throw(ERR_CHANOPRIVSNEEDED(this, user.get_name(), _channel->get_name()));
+	else if (!_channel->finduser(&user))
+		throw(ERR_NOTONCHANNEL(this, user.get_name(), _channel->get_name()));
+	else if(_channel->finduser(findUserbyname(_cmdparse[1])))
+		throw(ERR_USERONCHANNEL(this, user.get_name(), _cmdparse[1], _channel->get_name()));
+	set_rpl(RPL_INVITING(this, user.get_name(), _cmdparse[1], _channel->get_name()));
+	sendfds_serv();
+	_sendfd.erase(_sendfd.begin());
+	_sendfd.push_back(findUserbyname(_cmdparse[1])->getpollfd().fd);
+	set_rpl(RPL_INVITEMSG(this, user.get_name(), _cmdparse[1], _channel->get_name()));
+}
+
+void Server::topic(User &user)
+{
+	if (_cmdparse.size() < 3)
+		throw(ERR_NEEDMOREPARAMS(user.get_name(), this));
+	Chan* _channel = already_channel(to_upper(_cmdparse[1]));
+	if (!_channel)
+		throw(ERR_NOSUCHCHANNEL(this, user.get_name(), _cmdparse[1]));
+	else if (!_channel->findoperator(&user) && _channel->get_mode().find('i') != std::string::npos)
+		throw(ERR_CHANOPRIVSNEEDED(this, user.get_name(), _channel->get_name()));
+	else if (!_channel->finduser(&user))
+		throw(ERR_NOTONCHANNEL(this, user.get_name(), _channel->get_name()));
+	else if (_channel->gettopic().empty())
+		throw(RPL_NOTOPIC(this, user.get_name(), _channel->get_name()));
+	set_rpl(RPL_TOPIC(this, user.get_name(), _channel->get_name(), _cmdparse[2]));
+	
 }

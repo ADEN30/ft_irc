@@ -81,8 +81,11 @@ class Server
 		void join(User &);
 		void modeChannel(User &);
 		void pass_cmd(User &);
+		void invite(User &);
+		void topic(User &);
 
 };
+
 std::ostream& operator<<(std::ostream&, Server&); 
 
 #endif

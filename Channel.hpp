@@ -32,6 +32,7 @@ class Chan
 		std::map<User*, std::string> get_mapuser();
 		std::vector<User*> get_banUser();
 		std::string getnewop();
+		std::string gettopic();
 
 		//setteur
 		void set_mode(std::string);
@@ -46,6 +47,8 @@ class Chan
 
 		//find something
 		bool findbannedUser(User*);
+		bool findoperator(User*);
+		bool finduser(User*);
 };
 
 

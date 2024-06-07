@@ -57,13 +57,13 @@ template <typename T>
 #define RPL_PONG(server, nick, str) (BEGIN_RPL(server) + " PING " + nick + " :" + str + "\r\n")
 
 //Nick
-#define RPL_NICK(server, oldnick, nick) (":" + oldnick + "!d@lcoalhost" +  " NICK " + nick  + "\r\n")
+#define RPL_NICK(server, oldnick, nick) (":" + oldnick + "!d@localhost" +  " NICK " + nick  + "\r\n")
 #define ERR_NONICKNAMEGIVEN(server, nick) (BEGIN_RPL(server) + " 431 " + nick + " :No nickname given\r\n")
 #define ERR_ERRONEUSNICKNAME(server, nick) (BEGIN_RPL(server) + " 432 " + nick + " :Erroneus nickname\r\n")
 #define ERR_NICKNAMEINUSE(server, nick, newnick) (BEGIN_RPL(server) + " 433 " + nick + " :" + newnick + "\r\n")
 
 // Channel
-#define RPL_JOIN(server, nick, channel) (":" + nick + "!user@host JOIN " + channel + " " + nick +" :Real Name\r\n")
+#define RPL_JOIN(server, nick, channel) (":" + nick + "!d@localhost JOIN " + channel + " " + nick +" :Real Name\r\n")
 #define RPL_NAMREPLY(server, nick, channel,  str) (BEGIN_RPL(server) + " 353 " + nick + " = " + channel + " :" + str + "\r\n")
 #define RPL_ENDOFNAMES(server, nick, channel) (BEGIN_RPL(server) + " 366 " + nick + " " + channel + " :End of /NAMES list"  + "\r\n")
 #define ERR_NOSUCHCHANNEL(server, nick, channel) (BEGIN_RPL(server) + " 403 " + nick + " " + channel + " :No such channel\r\n")
@@ -74,13 +74,23 @@ template <typename T>
 #define ERR_CHANNELISFULL(server, nick, channel) (BEGIN_RPL(server) + " 471 " + nick + " " + channel + " :Cannot join channel (+l)\r\n") 
 #define ERR_INVITEONLYCHAN(server, nick, channel) (BEGIN_RPL(server) + " 473 " + nick + " " + channel + " :Cannot join channel (+i)\r\n") 
 #define ERR_BANNEDFROMCHAN(server, nick, channel) (BEGIN_RPL(server) + " 474 " + nick + " " + channel + " :Cannot join channel (+b)\r\n") 
-#define RPL_MODECHANNEL(nick, channel, str)  (":" + nick + "!user@host MODE " + channel + " :" + str + "\r\n")
+#define RPL_MODECHANNEL(nick, channel, str)  (":" + nick + "!d@localhost MODE " + channel + " :" + str + "\r\n")
 #define RPL_MODECHANNELSERVEUR(server, channel, str)  (BEGIN_RPL(server) + " MODE " + channel + " :+" + str + "\r\n")
+#define ERR_CHANOPRIVSNEEDED(server, nick, channel) (BEGIN_RPL(server) + " 482 " + nick + " " + channel + " :You'are not channel operator\r\n") 
 
 
 //PASS
-#define ERR_NEEDMOREPARAMS(nick, server) (BEGIN_RPL(server) + ": 461 " + nick + " :Not enougth parameters\r\n")
+#define ERR_NEEDMOREPARAMS(nick, server) (BEGIN_RPL(server) + ": 461 " + nick + " :Not enough parameters\r\n")
 #define ERR_ALREADYREGISTERED(nick, server) (BEGIN_RPL(server) + ": 462 " + nick + " :You may not reregister !\r\n")
 #define ERR_PASSWDMISSMATCH(nick, server) (BEGIN_RPL(server) + ": 464 " + nick + " :Password incorrect !\r\n")
 
+//Invite
+#define ERR_NOTONCHANNEL(server, nick, channel) (BEGIN_RPL(server) + " 442 " + nick + " " + channel + " :You're not on that channel !\r\n")
+#define ERR_USERONCHANNEL(server, nick, target, channel) (BEGIN_RPL(server) + " 443 " + nick + " " + target + " " + channel + " :is already on channel !\r\n")
+#define RPL_INVITING(server, nick, target, channel) (BEGIN_RPL(server) + " 341 " + nick + " :" + target + " " + channel + "\r\n")
+#define RPL_INVITEMSG(server, nick, target, channel) (":"+ nick +"!d@localhost INVITE " + target + " " + channel + "\r\n")
+
+//TOPIC
+#define RPL_NOTOPIC(server, nick, channel) (BEGIN_RPL(server) + " 331 " + nick + " " + channel + " :No topic is set\r\n")
+#define RPL_TOPIC(server, nick, channel, topic) (BEGIN_RPL(server) + " 332 " + nick + " " + channel + " :" + topic + "\r\n")
 #endif

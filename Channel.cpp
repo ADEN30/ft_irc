@@ -5,7 +5,7 @@ Chan::Chan(User& _op, std::string _n, std::string password) : _name(_n), _operat
 	_users.insert(std::make_pair(&_op, std::string("@")));
 	std::cout << "password in chan is: " << password << std::endl;
 	_mode = "t";
-	if (password.empty())
+	if (!password.empty())
 	{
 		_pswd = password;
 		_mode.push_back('k');
@@ -134,4 +134,30 @@ bool Chan::findbannedUser(User* user)
 	}
 	return (0);
 	
+}
+
+bool Chan::findoperator(User* user)
+{
+	for (_it i = _users.begin(); i != _users.end(); i++)
+	{
+		if (i->first->get_name() == user->get_name() && i->second.find('@') != std::string::npos)
+			return (1);
+	}
+	return (0);	
+}
+
+bool Chan::finduser(User *user)
+{
+	for (_it i = _users.begin(); i != _users.end(); i++)
+	{
+		if (i->first->get_name() == user->get_name())
+			return (1);
+	}
+	return (0);	
+}
+
+
+std::string Chan::gettopic()
+{
+	return (_topic);
 }
