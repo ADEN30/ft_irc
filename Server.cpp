@@ -38,6 +38,8 @@ void Server::set_host()
 		std::cout << errno << std::strerror(errno) << std::endl;
 		throw (-1);
 	}
+	sockaddr_in* ip_access = (sockaddr_in*)_host->ai_addr;
+	std::cout << "ip adresse: " << inet_ntoa(ip_access->sin_addr) << std::endl;
 	gethostname(_hostname, sizeof(_hostname));
 }
 
@@ -68,11 +70,13 @@ void Server::accept_conection_serv()
 {
 	int _fdcli;
 	sockaddr _addr_cli;
+	sockaddr *_adrr = &_addr_cli;
 	socklen_t _size_cli = sizeof(_addr_cli);
 	_fdcli = accept(_sock_serv, &_addr_cli, &_size_cli);
+	sockaddr_in* ip_access = (sockaddr_in*)_adrr;
 	User _new(_fdcli, *this);
+	_new.setip(inet_ntoa(ip_access->sin_addr));
 	_users.insert(std::make_pair(_fdcli, _new));
-	std::cout << *this << std::endl;
 	makepollfd_fds();
 }
 
@@ -261,7 +265,7 @@ std::ostream& operator<<(std::ostream & f, Server &s)
 
 int Server::find_cmds()
 {
-	const char* tab[] = {"NICK", "USER", "PING", "PONG", "JOIN", "MODE", "PASS", "INVITE", "TOPIC"};
+	const char* tab[] = {"NICK", "USER", "PING", "PONG", "JOIN", "MODE", "PASS", "INVITE", "TOPIC", "KICK"};
 	std::list<std::string> _cmds(tab, tab + sizeof(tab) / sizeof(char*) );
 	std::list<std::string>::iterator _it;
 	int i = 0;
@@ -432,6 +436,10 @@ void Server::run_order(User &user)
 			break ;
 		case 8:
 			topic(user);
+			break ;
+		case 9:
+			kick(user);
+			break ;
 		default:
 			break;
 		}
@@ -597,13 +605,15 @@ void Server::join(User &user)
 				throw(ERR_BANNEDFROMCHAN(this, user.get_name(), _channelname));
 			_channel->add_user(&user);
 		}
-		set_rpl(RPL_JOIN(this, user.get_name(), _channelname));
+		set_rpl(RPL_JOIN(this, user.get_name(), user.get_username(), user.getip(), _channelname));
 		_channel->send_msg_to(_sendfd, user.getpollfd().fd);
 		if (_sendfd.size() > 1)
 		{
 			sendfds_serv();
 			_sendfd.erase(_sendfd.begin() + 1);
 		}
+		if (!_channel->gettopic().empty())
+			set_rpl(RPL_TOPIC(this, user.get_name(), _channel->get_name(), _channel->gettopic()));
 		set_rpl(RPL_MODECHANNELSERVEUR(this, _channel->get_name(), _channel->get_mode()));
 		set_rpl(RPL_NAMREPLY(this, user.get_name(), _channel->get_name(), _channel->string_for_rpl()));
 		set_rpl(RPL_ENDOFNAMES(this, user.get_name(), _channel->get_name()));	
@@ -641,7 +651,7 @@ void Server::invite(User &user)
 	sendfds_serv();
 	_sendfd.erase(_sendfd.begin());
 	_sendfd.push_back(findUserbyname(_cmdparse[1])->getpollfd().fd);
-	set_rpl(RPL_INVITEMSG(this, user.get_name(), _cmdparse[1], _channel->get_name()));
+	set_rpl(RPL_INVITEMSG(this, user.get_name(), user.get_username(), user.getip(), _cmdparse[1], _channel->get_name()));
 }
 
 void Server::topic(User &user)
@@ -651,12 +661,60 @@ void Server::topic(User &user)
 	Chan* _channel = already_channel(to_upper(_cmdparse[1]));
 	if (!_channel)
 		throw(ERR_NOSUCHCHANNEL(this, user.get_name(), _cmdparse[1]));
-	else if (!_channel->findoperator(&user) && _channel->get_mode().find('i') != std::string::npos)
+	else if (!_channel->findoperator(&user) && _channel->get_mode().find('t') != std::string::npos)
 		throw(ERR_CHANOPRIVSNEEDED(this, user.get_name(), _channel->get_name()));
 	else if (!_channel->finduser(&user))
 		throw(ERR_NOTONCHANNEL(this, user.get_name(), _channel->get_name()));
-	else if (_channel->gettopic().empty())
-		throw(RPL_NOTOPIC(this, user.get_name(), _channel->get_name()));
-	set_rpl(RPL_TOPIC(this, user.get_name(), _channel->get_name(), _cmdparse[2]));
-	
+	//else if (_channel->gettopic().empty())
+		//throw(RPL_NOTOPIC(this, user.get_name(), _channel->get_name()));
+	_channel->settopic(_cmdparse[2]);
+	_channel->send_msg_to(_sendfd, user.getpollfd().fd);
+	set_rpl(RPL_TOPIC(this, user.get_name(), _channel->get_name(), _cmdparse[2]));	
+}
+
+void Server::kick(User &user)
+{
+	size_t _indexname = 0;
+	size_t _sizename = 0;
+	size_t _lengthname = _cmdparse[2].size();
+	Chan* _channel = already_channel(to_upper(_cmdparse[1]));
+	std::string _nickname = "";
+	if (_cmdparse.size() < 3)
+		throw(ERR_NEEDMOREPARAMS(user.get_name(), this));
+	else if (!_channel)
+		throw(ERR_NOSUCHCHANNEL(this, user.get_name(), _cmdparse[1]));
+	else if (!_channel->findoperator(&user))
+		throw(ERR_CHANOPRIVSNEEDED(this, user.get_name(), _channel->get_name()));
+	while (_indexname < _lengthname)
+	{
+		if (_cmdparse[2].find(',', _indexname) != std::string::npos)
+		{
+			_sizename = _cmdparse[2].find(',', _indexname) - _indexname;
+			_nickname = _cmdparse[2].substr(_indexname, _sizename);
+			_indexname = _cmdparse[2].find(',', _indexname) + 1;
+		}
+		else
+		{
+			_sizename = _lengthname - _indexname;
+			_nickname = _cmdparse[2].substr(_indexname, _sizename);			
+			_indexname = _lengthname;
+		}
+		if (!_channel->finduser(findUserbyname(_nickname)))
+		{
+			std::cout << "user not found 1" << std::endl;
+			if (_sendfd.size() > 1)
+				_sendfd.erase(_sendfd.begin() + 1);
+			std::cout << "user not found 2" << std::endl;
+			set_rpl(ERR_USERNOTINCHANNEL(this, user.get_name(), _channel->get_name()));
+			std::cout << "user not found 3" << std::endl;
+			sendfds_serv();
+		}
+		else
+		{
+			set_rpl(RPL_KICK(this, user.get_name(), user.get_username(), user.getip(), _channel->get_name(), _nickname));
+			_channel->send_msg_to(_sendfd, user.getpollfd().fd);
+			sendfds_serv();
+		}
+	}
+
 }

@@ -7,6 +7,7 @@
 #include <unistd.h> /* */
 #include <errno.h>
 #include <netdb.h> /* gethostbyname*/
+#include <arpa/inet.h>
 #include <utility>
 #define _BUFF_SIZE 20
 
@@ -83,6 +84,7 @@ class Server
 		void pass_cmd(User &);
 		void invite(User &);
 		void topic(User &);
+		void kick(User &);
 
 };
 

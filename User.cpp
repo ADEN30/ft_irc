@@ -94,3 +94,13 @@ void User::setflag(bool val)
 	_flag = val;
 }
 
+char* User::getip()
+{
+	return (_ip);
+}
+
+void User::setip(char* ip)
+{
+	_ip = ip;
+}
+

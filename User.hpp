@@ -28,6 +28,7 @@ class User
         int _regis;
         Server * _server;
 		bool _flag;
+		char* _ip;
 
     public:
         User(int, Server &);
@@ -44,6 +45,7 @@ class User
 		std::string get_usermode();
 		Chan* get_channel(std::string);
 		bool getflag();
+		char* getip();
 
         void setstr(char*);
 		void set_name(std::string &);
@@ -52,6 +54,7 @@ class User
 		void set_usermode(std::string &);
 		void set_channel(Chan &);
 		void setflag(bool);
+		void setip(char*);
 };
 
 

@@ -101,6 +101,6 @@ void Server::modeChannel(User &user)
 	if (!_rpl.empty())
 	{
 		_here->send_msg_to(_sendfd, user.getpollfd().fd);
-		set_rpl(RPL_MODECHANNEL(user.get_name(), _here->get_name(), _rpl));
+		set_rpl(RPL_MODECHANNEL(user.get_name(), user.get_username(), user.getip(), _here->get_name(), _rpl));
 	}
 }

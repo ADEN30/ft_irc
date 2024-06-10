@@ -39,6 +39,7 @@ class Chan
 		void set_lk(char, std::string);
 		void add_mode(char);
 		void send_msg_to(std::vector<int>&, int);
+		void settopic(std::string);
 
 		void add_user(User*);
 		void addoperator(User*);

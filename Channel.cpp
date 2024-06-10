@@ -148,6 +148,8 @@ bool Chan::findoperator(User* user)
 
 bool Chan::finduser(User *user)
 {
+	if (!user)
+		return (0);
 	for (_it i = _users.begin(); i != _users.end(); i++)
 	{
 		if (i->first->get_name() == user->get_name())
@@ -160,4 +162,9 @@ bool Chan::finduser(User *user)
 std::string Chan::gettopic()
 {
 	return (_topic);
+}
+
+void Chan::settopic(std::string topic)
+{
+	_topic = topic;
 }
