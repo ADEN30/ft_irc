@@ -49,6 +49,9 @@ class Server
 		User* findUser(int);
 		User* findUserbyname(std::string);
 
+		//delete something
+		void deleteChan(Chan*);
+
 		//Check something
 		Chan* already_channel(std::string);
 		void check_port();
@@ -85,6 +88,9 @@ class Server
 		void invite(User &);
 		void topic(User &);
 		void kick(User &);
+		void part(User &);
+		void quit(User &);
+		void privmsg(User &);
 
 };
 

@@ -95,6 +95,17 @@ template <typename T>
 #define RPL_TOPIC(server, nick, channel, topic) (BEGIN_RPL(server) + " 332 " + nick + " " + channel + " :" + topic + "\r\n")
 
 //Kick
-#define  ERR_USERNOTINCHANNEL(server, nick, channel) (BEGIN_RPL(server) + " 441 " + nick + " " + channel + " :They aren't on that channel\r\n")
+#define ERR_USERNOTINCHANNEL(server, nick, channel) (BEGIN_RPL(server) + " 441 " + nick + " " + channel + " :They aren't on that channel\r\n")
 #define RPL_KICK(server, nick, user, ip, channel, target) (":"+ nick +"!" + user + "@" + ip + " KICK " + channel + " " + target + "\r\n")
+
+//Part
+#define RPL_PART(server, nick, user, ip, channel, context) (":"+ nick +"!" + user + "@" + ip + " PART " + channel + " :" + context + "\r\n")
+
+//Quit
+#define RPL_QUIT(nick, user, ip, context) (":"+ nick +"!" + user + "@" + ip + " QUIT :" + context + "\r\n")
+#define ERROR_(context) (":ERROR :" + context + "\r\n")
+ 
+ //Privmsg
+ #define RPL_PRIVMSG(nick, user, ip, target, msg) (":"+ nick +"!" + user + "@" + ip + " PRIVMSG " + target + " :" + msg + "\r\n")
+ #define ERR_NOSUCHNICK(server, nick, target) (BEGIN_RPL(server) + " 401 " + nick + " " + target + " :No such nick/channel\r\n")
 #endif

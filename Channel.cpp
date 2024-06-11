@@ -168,3 +168,18 @@ void Chan::settopic(std::string topic)
 {
 	_topic = topic;
 }
+
+void Chan::deleteUser(User* user)
+{
+	if (_users.size() < 2)
+		_users.clear();
+	for (_it i = _users.begin(); i != _users.end(); i++)
+	{
+		if (i->first->get_name() == user->get_name())
+		{
+			_users.erase(i->first);
+			return ;
+		}
+	}
+	
+}

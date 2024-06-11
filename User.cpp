@@ -59,6 +59,11 @@ std::string User::get_username()
 	return (_username);
 }
 
+std::vector<Chan*> User::get_channel()
+{
+	return (_chan);
+}
+
 void User::set_username(std::string &username)
 {
 	_username = username;
@@ -102,5 +107,35 @@ char* User::getip()
 void User::setip(char* ip)
 {
 	_ip = ip;
+}
+
+Chan* User::findchannel(Chan* channel)
+{
+	if (!channel)
+		return (NULL);
+	for (size_t i = 0; i < _chan.size(); i++)
+	{
+		if (channel->get_name() == _chan[i]->get_name())
+			return (_chan[i]);
+	}
+	return (NULL);
+	
+}
+
+void User::deleteChan(Chan* channel)
+{
+	std::vector<Chan*>::iterator _iterchan = _chan.begin();
+	std::cout << "User chan size: " << _chan.size() << std::endl;
+	for (size_t i = 0; i < _chan.size(); i++)
+	{
+		if(_chan[i]->get_name() == channel->get_name())
+		{
+			_chan.erase(_iterchan);
+			return ;
+		}
+		_iterchan++;
+	}
+	std::cout << "User chan size: " << _chan.size() << std::endl;
+	
 }
 

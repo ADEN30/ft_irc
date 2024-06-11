@@ -46,6 +46,9 @@ class Chan
 		std::string string_for_rpl();
 		std::string rpl_mode();
 
+		//delete something
+		void deleteUser(User*);
+
 		//find something
 		bool findbannedUser(User*);
 		bool findoperator(User*);

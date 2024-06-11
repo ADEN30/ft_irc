@@ -43,9 +43,16 @@ class User
 		std::string get_realname();
 		std::string get_username();
 		std::string get_usermode();
-		Chan* get_channel(std::string);
+		std::vector<Chan*> get_channel();
 		bool getflag();
 		char* getip();
+
+		//find somthing
+		Chan* findchannel(Chan*);
+
+
+		//delete something
+		void deleteChan(Chan*);
 
         void setstr(char*);
 		void set_name(std::string &);
