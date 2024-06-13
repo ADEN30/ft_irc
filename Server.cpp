@@ -177,6 +177,8 @@ std::string Server::gethostname_srv()
 void Server::makepollfd_fds()
 {
 	int i = 0;
+	if (_poll)
+		delete _poll;
 	_poll = new pollfd[_users.size()];
 	for(_ituser it = _users.begin(); it != _users.end(); it++)
 	{
@@ -604,9 +606,9 @@ void Server::join(User &user)
 		}
 		else
 		{
-			if (_channel->get_limuser() > 0 && _channel->get_limuser() < _channel->get_mapuser().size() + 1)
+			if (_channel->get_mode().find('l') != std::string::npos && _channel->get_limuser() > 0 && _channel->get_limuser() < _channel->get_mapuser().size() + 1)
 				throw (ERR_CHANNELISFULL(this, user.get_name(), _channelname));
-			else if (_channel->get_mode().find('i') != std::string::npos)
+			else if (_channel->get_mode().find('i') != std::string::npos && !_channel->finduser(&user))
 				throw (ERR_INVITEONLYCHAN(this, _channel->get_name(), _channelname));
 			else if (_channel->get_mode().find('k') != std::string::npos && !(_channel->get_password().empty()) && _passwordchannel != _channel->get_password())
 				throw (ERR_BADCHANNELKEY(this, user.get_name(), _channelname));
@@ -615,7 +617,7 @@ void Server::join(User &user)
 			_channel->add_user(&user);
 		}
 		user.set_channel(*_channel);	
-		set_rpl(RPL_JOIN(this, user.get_name(), user.get_username(), user.getip(), _channelname));
+		set_rpl(RPL_JOIN(this, user.get_name(), user.get_username(), user.getip(), _channel->get_name()));
 		_channel->send_msg_to(_sendfd, user.getpollfd().fd);
 		if (_sendfd.size() > 1)
 		{
@@ -662,6 +664,7 @@ void Server::invite(User &user)
 	_sendfd.erase(_sendfd.begin());
 	_sendfd.push_back(findUserbyname(_cmdparse[1])->getpollfd().fd);
 	set_rpl(RPL_INVITEMSG(this, user.get_name(), user.get_username(), user.getip(), _cmdparse[1], _channel->get_name()));
+	_channel->add_user(findUserbyname(_cmdparse[1]));
 }
 
 void Server::topic(User &user)

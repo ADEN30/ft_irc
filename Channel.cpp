@@ -62,13 +62,17 @@ std::string Chan::getnewop()
 
 void Chan::set_lk(char c, std::string str)
 {
+	if (str.empty())
+		throw (std::string("no argument with the mode"));
 	if (c == 'k')
 		_pswd = str;
 	else if (c == 'l')
 	{
 		_limuser = atoi(str.c_str());
-		if (_limuser < 0)
+		if (_limuser < 0 )
 			_limuser = 0;
+		else if (_limuser < _users.size())
+			_limuser = _users.size();
 	}
 	else if(c == 'o')
 	{
@@ -78,11 +82,28 @@ void Chan::set_lk(char c, std::string str)
 			{
 				i->second.push_back('@');
 				new_op = i->first->get_name();
-				break ;
+				return ;
 			}
 		}
+		throw(std::string("user don't exist !"));
 		
 	}
+}
+
+void Chan::delete_symboleOp(std::string nick)
+{
+	std::cout << "we delete the operator:" << nick << std::endl;
+	for (std::map<User*, std::string>::iterator i = _users.begin(); i != _users.end(); i++)
+	{
+		std::cout << "name: " << i->first->get_name() << "\t power:" << i->second << "." << std::endl;
+		if (i->first->get_name() == nick && i->second.find('@') != std::string::npos)
+		{
+			i->second = "";
+			new_op = i->first->get_name();
+			return ;
+		}
+	}
+	throw (std::string("user don't exist !"));
 }
 
 void Chan::send_msg_to(std::vector<int> & fds, int sender)

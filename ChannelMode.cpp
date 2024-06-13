@@ -32,19 +32,48 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 	size_t length_input = _cmdparse.size();
 	size_t _indexofletter = 0;
 
-	while (--length_input >= 3 && sign == '+')
+	while (length_input > 3 && sign == '+')
 	{
-		_indexofletter = _cmdparse[2].find_first_of("lko", _indexofletter);
-		_here->set_lk(_cmdparse[2][_indexofletter], _cmdparse[length_input]);
-		_indexofletter++;
-	}
-	while (_cmdparse[2].find_first_of("lko", _indexofletter) != std::string::npos && sign == '+')
+		try
+		{
+			_indexofletter = _cmdparse[2].find_first_of("lko", _indexofletter);	
+			_here->set_lk(_cmdparse[2][_indexofletter], _cmdparse[--length_input]);
+			_indexofletter++;
+		}
+		catch(std::string &e)
+		{
+			std::cout << e << std::endl;
+			if (_cmdparse[2].size() > 1)
+				_cmdparse[2].erase(_indexofletter, 1);
+			else
+				_cmdparse[2].clear();
+		}
+	}	
+	while ((_indexofletter = _cmdparse[2].find_first_of("lko", _indexofletter)) != std::string::npos)
 	{
-		std::cout << "delete of: " << _cmdparse[2][_indexofletter] << std::endl;
-		_cmdparse[2].erase(_indexofletter, 1);
-		_here->set_lk(_cmdparse[2][_indexofletter], "");
-		_indexofletter++;
+		try
+		{
+			if (sign == '-' && _cmdparse[2][_indexofletter] == 'o' && _cmdparse.size() > 3)
+				_here->delete_symboleOp(_cmdparse[--length_input]);
+			else
+				_here->set_lk(_cmdparse[2][_indexofletter], "");
+			_indexofletter++;
+		}
+		catch (std::string &e)
+		{
+			std::cout << "delete of: " << _cmdparse[2][_indexofletter] << "\t" << e << std::endl;
+			if (sign == '+' || (_cmdparse[2][_indexofletter] == 'o' && sign == '-'))
+			{
+				if (_cmdparse[2].size() > 1)
+					_cmdparse[2].erase(_indexofletter, 1);
+				else
+					_cmdparse[2].clear();
+			}	
+			else
+				_indexofletter++;
+		}
 	}
+	std::cout << "last find to delete: " << _cmdparse[2].find_first_of("lko", _indexofletter) << std::endl;
 }
 
 std::string rplLKO(std::string str, Chan* _here)

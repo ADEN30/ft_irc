@@ -48,6 +48,7 @@ class Chan
 
 		//delete something
 		void deleteUser(User*);
+		void delete_symboleOp(std::string);
 
 		//find something
 		bool findbannedUser(User*);
