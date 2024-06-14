@@ -8,17 +8,23 @@ std::string parseMode(char c, std::string newmode, Chan* channel)
 	{
 		if(c == '+' &&  std::string("tklbio").find(newmode[i]) != std::string::npos)
 		{	
-			if (_mode.find_first_of(newmode[i]) == std::string::npos && newmode[i] != 'o')
-				_mode.push_back(newmode[i]);
-			_rpl.push_back(newmode[i]);	
+			if (_mode.find_first_of(newmode[i]) == std::string::npos || std::string("lko").find(newmode[i]) != std::string::npos)
+			{
+				if (newmode[i] != 'o')
+					_mode.push_back(newmode[i]);
+				_rpl.push_back(newmode[i]);	
+			}
 		}
 		else if (c == '-' && std::string("tklbio").find(newmode[i]) != std::string::npos)
 		{
-			if (_mode.size() < 2)
-				_mode.clear();
-			else if (_mode.find_first_of(newmode[i]) != std::string::npos)
-				_mode.erase(_mode.find_first_of(newmode[i]), 1);
-			_rpl.push_back(newmode[i]);	
+			if (_mode.find_first_of(newmode[i]) != std::string::npos)
+			{
+				if (_mode.size() < 2)
+					_mode.clear();
+				else
+					_mode.erase(_mode.find_first_of(newmode[i]), 1);
+				_rpl.push_back(newmode[i]);	
+			}
 		}
 	}
 	channel->set_mode(_mode);
@@ -29,16 +35,17 @@ std::string parseMode(char c, std::string newmode, Chan* channel)
 
 void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 {
-	size_t length_input = _cmdparse.size();
+	size_t length_input = 1;
 	size_t _indexofletter = 0;
 
-	while (length_input > 3 && sign == '+')
+	while (sign == '+' && _cmdparse.size() > 2 + length_input && (_indexofletter = _cmdparse[2].find_first_of("lko", _indexofletter)) != std::string::npos)
 	{
 		try
 		{
-			_indexofletter = _cmdparse[2].find_first_of("lko", _indexofletter);	
-			_here->set_lk(_cmdparse[2][_indexofletter], _cmdparse[--length_input]);
+			std::cout << "mode: " << _cmdparse[2][_indexofletter] << "\targument: " << _cmdparse[2 + length_input] <<std::endl;
+			_here->set_lk(_cmdparse[2][_indexofletter], _cmdparse[2 + length_input]);
 			_indexofletter++;
+			length_input++;
 		}
 		catch(std::string &e)
 		{
@@ -54,9 +61,9 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 		try
 		{
 			if (sign == '-' && _cmdparse[2][_indexofletter] == 'o' && _cmdparse.size() > 3)
-				_here->delete_symboleOp(_cmdparse[--length_input]);
+				_here->delete_symboleOp(_cmdparse[length_input++]);
 			else
-				_here->set_lk(_cmdparse[2][_indexofletter], "");
+				_here->set_lk(_cmdparse[2][_indexofletter], "\0");
 			_indexofletter++;
 		}
 		catch (std::string &e)
@@ -76,24 +83,24 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 	std::cout << "last find to delete: " << _cmdparse[2].find_first_of("lko", _indexofletter) << std::endl;
 }
 
-std::string rplLKO(std::string str, Chan* _here)
+std::string rplLKO(std::string str, Chan* _here, char sign)
 {
 	std::string _rpl = "";
-	if (std::string("lko").find_first_of(str) == 0)
-	{
+	size_t _indexofmode = 0;
+	if (sign == '-')
+		return (_rpl);
+	std::cout << "LKO str: " << str << std::endl;
+	while ((_indexofmode = str.find_first_of("lko", _indexofmode)) != std::string::npos)
+	{	
 		_rpl.push_back(' ');
-		_rpl += NumberToString(_here->get_limuser());
-		
-	}
-	if (std::string("lko").find_last_of(str) == 1)
-	{
-		_rpl.push_back(' ');
-		_rpl += _here->get_password();
-	}
-	if (std::string("lko").find_last_of(str) == 2)
-	{
-		_rpl.push_back(' ');
-		_rpl += _here->getnewop();
+		std::cout << "_indexofmode: " << _indexofmode<< std::endl;
+		if (str[_indexofmode] == 'l')
+			_rpl += NumberToString(_here->get_limuser());
+		else if (str[_indexofmode] == 'k')
+			_rpl += _here->get_password();
+		else if (str[_indexofmode] == 'o')
+			_rpl += _here->getnewop();
+		_indexofmode++;
 	}
 	return (_rpl);
 }
@@ -109,7 +116,7 @@ void Server::modeChannel(User &user)
 	if (!(_here))
 		throw( ERR_NOSUCHCHANNEL(this, user.get_name(), _cmdparse[1]));
 	else if (_cmdparse.size() == 2)
-		throw(RPL_CHANNELMODEIS(this, user.get_name(), _here->get_name(), _here->get_mode(), rplLKO(_here->get_mode(), _here)));
+		throw(RPL_CHANNELMODEIS(this, user.get_name(), _here->get_name(), _here->get_mode(), rplLKO(_here->get_mode(), _here, _sign)));
 	else if (!_here->findoperator(&user))
 		throw (ERR_CHANOPRIVSNEEDED(this, user.get_name(), _here->get_name()));
 	_index = _cmdparse[2].find_first_not_of("+-", _index);	
@@ -124,9 +131,9 @@ void Server::modeChannel(User &user)
 		_cmdparse[2] = _cmdparse[2].substr(_index, _cmdparse[2].size() - _index);
 		parse_lk(_cmdparse, _here, _sign);
 		_rpl += parseMode(_sign, _cmdparse[2].substr(0, _cmdparse[2].size()), _here);
-		_index = _cmdparse[2].find_first_not_of("+-", _index++);	
+		_rpl += rplLKO(_cmdparse[2], _here, _sign);
+		_index = _cmdparse[2].find_first_not_of("+-", ++_index);	
 	}
-	_rpl += rplLKO(_cmdparse[2], _here);
 	if (!_rpl.empty())
 	{
 		_here->send_msg_to(_sendfd, user.getpollfd().fd);

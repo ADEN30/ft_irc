@@ -61,17 +61,17 @@ std::string Chan::getnewop()
 }
 
 void Chan::set_lk(char c, std::string str)
-{
-	if (str.empty())
-		throw (std::string("no argument with the mode"));
+{	
 	if (c == 'k')
+	{
 		_pswd = str;
+		std::cout << "mot de passe: " << _pswd << std::endl;
+	}
 	else if (c == 'l')
 	{
 		_limuser = atoi(str.c_str());
-		if (_limuser < 0 )
-			_limuser = 0;
-		else if (_limuser < _users.size())
+		std::cout << "limite users: " << _limuser << std::endl;
+		if (_limuser < _users.size())
 			_limuser = _users.size();
 	}
 	else if(c == 'o')
@@ -88,6 +88,8 @@ void Chan::set_lk(char c, std::string str)
 		throw(std::string("user don't exist !"));
 		
 	}
+	if (str.empty())
+		throw (std::string("no argument with the mode"));
 }
 
 void Chan::delete_symboleOp(std::string nick)
@@ -138,11 +140,12 @@ std::string Chan::string_for_rpl()
 	for (_it i = _users.begin(); i != _users.end(); i++)
 	{
 		std::cout << i->second << "\n";
+		if (i != _users.begin())
+			_str += " ";
 		_str += i->second;
 		_str += i->first->get_name();
-		_str += " ";
-	}
-	std::cout << "built rpl_string : " << _str << std::endl;
+		}
+	std::cout << "built rpl_string : " << _str << "." << std::endl;
 	return (_str);
 }
 

@@ -36,7 +36,7 @@ template <typename T>
 #define RPL_YOURHOST(server, nick) (BEGIN_RPL(server) + " 002 " + nick + " :Your host is Flower, running version 0.1\r\n")
 #define RPL_CREATED(server, nick) (BEGIN_RPL(server) + " 003 " + nick + " :This server was created " + getstr_time() + "\r\n")
 #define RPL_MYINFO(server, nick)  (BEGIN_RPL(server) + " 004 " + nick + " :Flower 0.1  iOr CHANMODE=itkol\r\n")
-#define RPL_ISUPPORT(server, nick)  (BEGIN_RPL(server) + " 005 " + nick + " ARGMAX=NICK:1:are suported by this server\r\n")
+#define RPL_ISUPPORT(server, nick)  (BEGIN_RPL(server) + " 005 " + nick + " CHANMODES=o,k,l,ti CHANTYPES=# TARGMAX=NICK:1, PRIVMSG:1 :are supported by this server\r\n")
 #define RPL_MOTD(server, nick)  (BEGIN_RPL(server) + " 005 " + nick + " :- Flower message of the day -\n" + \
 "  _____   _ \n\
  |  ___| | |   ___   __      __   ___   _ __ \n\

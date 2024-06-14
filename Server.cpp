@@ -116,7 +116,8 @@ void Server::sendfds_serv()
 		{	
 			if(_rpl[i].size() < 512)
 			{
-				send(_sendfd[j], _rpl[i].c_str(), _rpl[i].size(), 0);
+				if (send(_sendfd[j], _rpl[i].c_str(), _rpl[i].size(), 0) == -1)
+					std::cout << "Error Send" << std::endl;
 				std::cout << GREEN_TEXT << "<<" << _rpl[i] << RESET_TEXT;
 			}
 		}
@@ -473,16 +474,14 @@ void Server::run_order(User &user)
 void Server::nick(User &user)
 {
     size_t _index = 0;
-	std::string _valid = "\\[]{}#:";
+	std::string _invalid = "#: ";
+
 	if (!user.getflag())
 		return ;
-	if (_cmdparse.size() < 2 || _index == std::string::npos || isdigit(_cmdparse[1][_index + 1]))
+	else if (_cmdparse.size() < 2 || _index == std::string::npos || isdigit(_cmdparse[1][1]))
 		throw (ERR_NONICKNAMEGIVEN(this, user.get_name()));
-    while (++_index < _cmd.size())
-    {
-        if(!isalnum(_cmd[_index]) && std::find(_valid.begin(), _valid.end(), _cmd[_index]) != _valid.end())
-			throw (ERR_ERRONEUSNICKNAME(this, user.get_name()));
-    }
+    else if(_invalid.find_first_of(_cmdparse[1]) != std::string::npos)
+		throw (ERR_ERRONEUSNICKNAME(this, user.get_name()));
 	if (findUserbyname(_cmdparse[1]))
 		throw (ERR_NICKNAMEINUSE(this, user.get_name(), _cmdparse[1]));
 	std::string _oldname = user.get_name();
@@ -678,8 +677,6 @@ void Server::topic(User &user)
 		throw(ERR_CHANOPRIVSNEEDED(this, user.get_name(), _channel->get_name()));
 	else if (!_channel->finduser(&user))
 		throw(ERR_NOTONCHANNEL(this, user.get_name(), _channel->get_name()));
-	//else if (_channel->gettopic().empty())
-		//throw(RPL_NOTOPIC(this, user.get_name(), _channel->get_name()));
 	_channel->settopic(_cmdparse[2]);
 	_channel->send_msg_to(_sendfd, user.getpollfd().fd);
 	set_rpl(RPL_TOPIC(this, user.get_name(), _channel->get_name(), _cmdparse[2]));	
@@ -817,7 +814,7 @@ void Server::quit(User &user)
 			set_rpl(RPL_QUIT(user.get_name(), user.get_username(), user.getip(), _cmdparse[1]));
 			sendfds_serv();
 			_channels[i]->deleteUser(&user);
-			if (_channels[i]->get_mapuser().size() == 1)
+			if (_channels[i]->get_mapuser().size() == 0)
 				deleteChan(_channels[i]);
 			_sendfd.erase(_sendfd.begin(), _sendfd.end());
 		}
