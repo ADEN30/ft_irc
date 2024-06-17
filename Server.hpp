@@ -30,6 +30,7 @@ class Server
 		std::string _bufferread;
 		std::string _cmd;
 		std::vector<std::string> _cmdparse;
+		int _findtwopoint;
 		std::string _pass;
 		std::string _port;
 

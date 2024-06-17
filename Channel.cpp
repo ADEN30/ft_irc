@@ -71,7 +71,7 @@ void Chan::set_lk(char c, std::string str)
 	{
 		_limuser = atoi(str.c_str());
 		std::cout << "limite users: " << _limuser << std::endl;
-		if (_limuser < _users.size())
+		if (_limuser < _users.size() || _limuser == 0)
 			_limuser = _users.size();
 	}
 	else if(c == 'o')

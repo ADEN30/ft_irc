@@ -6,6 +6,7 @@ Server::Server(std::string pass, std::string port)
 	_size_poll = 0;
 	_pass = pass;
 	_port = port;
+	_findtwopoint = 0;
 	try
 	{
 		check_port();
@@ -94,6 +95,16 @@ void Server::readfds_serv(int fd)
 	}
 	if (_bytes_r == 0)
 	{
+		std::vector<Chan*> _listchannels = _us->get_channel();
+		for (size_t i = 0; i < _listchannels.size(); i++)
+		{
+			_listchannels[i]->send_msg_to(_sendfd, fd);
+			set_rpl(RPL_PART(this, _us->get_name(), _us->get_username(), _us->getip(), _listchannels[i]->get_name(), std::string("the deconexion is weird !")));
+			sendfds_serv();
+			_sendfd.clear();
+			_us->deleteChan(_listchannels[i]);
+		}
+		
 		_users.erase(fd);
 		close(fd);
 		makepollfd_fds();
@@ -196,11 +207,11 @@ User* Server::findUser(int fd)
 	{
 		if (i->first == fd)
 		{
-			return (&(i->second));
+			return (&i->second);
 		}
 	}
 	std::cout << "User not Found\n";
-	throw ;
+	return (NULL);
 }
 
 User* Server::findUserbyname(std::string _name)
@@ -314,6 +325,7 @@ void Server::parse_order()
 		{
 			std::cout << "find two point" << std::endl;
 			twopoint = 1;
+			_findtwopoint = 1;
 			_nparam++;
 		}
 		if (_cmd.find_first_of(' ', _nparam + 1) != std::string::npos && !twopoint)
@@ -331,6 +343,7 @@ void Server::orders(User &user)
     {
         try
 		{
+			_findtwopoint = 0;
        		_end = _bufferread.find("\r\n");
        		if (_end == std::string::npos)
        		    throw(std::string("no \\r\\n"));
@@ -482,8 +495,11 @@ void Server::nick(User &user)
 		throw (ERR_NONICKNAMEGIVEN(this, user.get_name()));
     else if(_invalid.find_first_of(_cmdparse[1]) != std::string::npos)
 		throw (ERR_ERRONEUSNICKNAME(this, user.get_name()));
-	if (findUserbyname(_cmdparse[1]))
-		throw (ERR_NICKNAMEINUSE(this, user.get_name(), _cmdparse[1]));
+	while (findUserbyname(_cmdparse[1]))
+	{
+		set_rpl(ERR_NICKNAMEINUSE(this, user.get_name(), _cmdparse[1]));
+		_cmdparse[1].push_back('_');
+	}
 	std::string _oldname = user.get_name();
 	user.set_name(_cmdparse[1]);
     if (!user.get_name().empty() && !user.get_username().empty() && user.getregis() == 0)
@@ -605,15 +621,25 @@ void Server::join(User &user)
 		}
 		else
 		{
-			if (_channel->get_mode().find('l') != std::string::npos && _channel->get_limuser() > 0 && _channel->get_limuser() < _channel->get_mapuser().size() + 1)
-				throw (ERR_CHANNELISFULL(this, user.get_name(), _channelname));
-			else if (_channel->get_mode().find('i') != std::string::npos && !_channel->finduser(&user))
-				throw (ERR_INVITEONLYCHAN(this, _channel->get_name(), _channelname));
-			else if (_channel->get_mode().find('k') != std::string::npos && !(_channel->get_password().empty()) && _passwordchannel != _channel->get_password())
-				throw (ERR_BADCHANNELKEY(this, user.get_name(), _channelname));
-			else if (_channel->get_banUser().size() > 0 && _channel->findbannedUser(&user))
-				throw(ERR_BANNEDFROMCHAN(this, user.get_name(), _channelname));
-			_channel->add_user(&user);
+			if (!_channel->finduser(&user))
+				_channel->add_user(&user);
+			try {
+				if (_channel->get_mode().find('l') != std::string::npos && _channel->get_limuser() > 0 && _channel->get_limuser() < _channel->get_mapuser().size())
+				{
+					std::cout << "map user: " << _channel->get_mapuser().size() << "\t channel limuser: " << _channel->get_limuser() << std::endl;
+					throw (ERR_CHANNELISFULL(this, user.get_name(), _channelname));
+				}
+				else if (_channel->get_mode().find('i') != std::string::npos && !_channel->finduser(&user))
+					throw (ERR_INVITEONLYCHAN(this, _channel->get_name(), _channelname));
+				else if (_channel->get_mode().find('k') != std::string::npos && !(_channel->get_password().empty()) && _passwordchannel != _channel->get_password())
+					throw (ERR_BADCHANNELKEY(this, user.get_name(), _channelname));
+				else if (_channel->get_banUser().size() > 0 && _channel->findbannedUser(&user))
+					throw(ERR_BANNEDFROMCHAN(this, user.get_name(), _channelname));
+			}
+			catch(std::string &e){
+				_channel->deleteUser(&user);
+				throw(e);
+			}
 		}
 		user.set_channel(*_channel);	
 		set_rpl(RPL_JOIN(this, user.get_name(), user.get_username(), user.getip(), _channel->get_name()));
@@ -668,7 +694,7 @@ void Server::invite(User &user)
 
 void Server::topic(User &user)
 {
-	if (_cmdparse.size() < 3)
+	if (_cmdparse.size() < 2)
 		throw(ERR_NEEDMOREPARAMS(user.get_name(), this));
 	Chan* _channel = already_channel(to_upper(_cmdparse[1]));
 	if (!_channel)
@@ -677,9 +703,12 @@ void Server::topic(User &user)
 		throw(ERR_CHANOPRIVSNEEDED(this, user.get_name(), _channel->get_name()));
 	else if (!_channel->finduser(&user))
 		throw(ERR_NOTONCHANNEL(this, user.get_name(), _channel->get_name()));
-	_channel->settopic(_cmdparse[2]);
+	if (_findtwopoint && _cmdparse.size() == 2)
+		_channel->settopic(std::string(""));
+	else if (_cmdparse.size() > 2)
+		_channel->settopic(_cmdparse[2]);
 	_channel->send_msg_to(_sendfd, user.getpollfd().fd);
-	set_rpl(RPL_TOPIC(this, user.get_name(), _channel->get_name(), _cmdparse[2]));	
+	set_rpl(RPL_TOPIC(this, user.get_name(), _channel->get_name(), _channel->gettopic()));	
 }
 
 void Server::kick(User &user)
