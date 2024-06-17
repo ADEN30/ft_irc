@@ -3,7 +3,6 @@
 Chan::Chan(User& _op, std::string _n, std::string password) : _name(_n), _operator(&_op)
 {
 	_users.insert(std::make_pair(&_op, std::string("@")));
-	std::cout << "password in chan is: " << password << std::endl;
 	_mode = "t";
 	if (!password.empty())
 	{
@@ -12,8 +11,6 @@ Chan::Chan(User& _op, std::string _n, std::string password) : _name(_n), _operat
 	}
 	_topic = "";
 	_limuser = 0;
-	std::cout << _op.get_name() << std::endl;
-	std::cout << _users.begin()->first->get_name() << std::endl;
 }
 
 std::string Chan::get_name()
@@ -65,12 +62,10 @@ void Chan::set_lk(char c, std::string str)
 	if (c == 'k')
 	{
 		_pswd = str;
-		std::cout << "mot de passe: " << _pswd << std::endl;
 	}
 	else if (c == 'l')
 	{
 		_limuser = atoi(str.c_str());
-		std::cout << "limite users: " << _limuser << std::endl;
 		if (_limuser < _users.size() || _limuser == 0)
 			_limuser = _users.size();
 	}
@@ -94,10 +89,8 @@ void Chan::set_lk(char c, std::string str)
 
 void Chan::delete_symboleOp(std::string nick)
 {
-	std::cout << "we delete the operator:" << nick << std::endl;
 	for (std::map<User*, std::string>::iterator i = _users.begin(); i != _users.end(); i++)
 	{
-		std::cout << "name: " << i->first->get_name() << "\t power:" << i->second << "." << std::endl;
 		if (i->first->get_name() == nick && i->second.find('@') != std::string::npos)
 		{
 			i->second = "";
@@ -139,13 +132,11 @@ std::string Chan::string_for_rpl()
 	}
 	for (_it i = _users.begin(); i != _users.end(); i++)
 	{
-		std::cout << i->second << "\n";
 		if (i != _users.begin())
 			_str += " ";
 		_str += i->second;
 		_str += i->first->get_name();
 		}
-	std::cout << "built rpl_string : " << _str << "." << std::endl;
 	return (_str);
 }
 

@@ -9,7 +9,7 @@
 #include <netdb.h> /* gethostbyname*/
 #include <arpa/inet.h>
 #include <utility>
-#define _BUFF_SIZE 20
+#define _BUFF_SIZE 513
 
 class User;
 class Chan;

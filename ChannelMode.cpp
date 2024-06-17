@@ -42,14 +42,12 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 	{
 		try
 		{
-			std::cout << "mode: " << _cmdparse[2][_indexofletter] << "\targument: " << _cmdparse[2 + length_input] <<std::endl;
 			_here->set_lk(_cmdparse[2][_indexofletter], _cmdparse[2 + length_input]);
 			_indexofletter++;
 			length_input++;
 		}
 		catch(std::string &e)
 		{
-			std::cout << e << std::endl;
 			if (_cmdparse[2].size() > 1)
 				_cmdparse[2].erase(_indexofletter, 1);
 			else
@@ -68,7 +66,6 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 		}
 		catch (std::string &e)
 		{
-			std::cout << "delete of: " << _cmdparse[2][_indexofletter] << "\t" << e << std::endl;
 			if (sign == '+' || (_cmdparse[2][_indexofletter] == 'o' && sign == '-'))
 			{
 				if (_cmdparse[2].size() > 1)
@@ -80,7 +77,6 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 				_indexofletter++;
 		}
 	}
-	std::cout << "last find to delete: " << _cmdparse[2].find_first_of("lko", _indexofletter) << std::endl;
 }
 
 std::string rplLKO(std::string str, Chan* _here, char sign)
@@ -89,11 +85,9 @@ std::string rplLKO(std::string str, Chan* _here, char sign)
 	size_t _indexofmode = 0;
 	if (sign == '-')
 		return (_rpl);
-	std::cout << "LKO str: " << str << std::endl;
 	while ((_indexofmode = str.find_first_of("lko", _indexofmode)) != std::string::npos)
 	{	
 		_rpl.push_back(' ');
-		std::cout << "_indexofmode: " << _indexofmode<< std::endl;
 		if (str[_indexofmode] == 'l')
 			_rpl += NumberToString(_here->get_limuser());
 		else if (str[_indexofmode] == 'k')
@@ -112,7 +106,6 @@ void Server::modeChannel(User &user)
 	size_t _index = 0;
 	Chan* _here = already_channel(to_upper(_cmdparse[1]));
 
-	std::cout << _cmdparse[1] << &_here << std::endl;
 	if (!(_here))
 		throw( ERR_NOSUCHCHANNEL(this, user.get_name(), _cmdparse[1]));
 	else if (_cmdparse.size() == 2)

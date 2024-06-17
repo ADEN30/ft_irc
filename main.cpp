@@ -11,7 +11,6 @@ int main(int argc, char** argv)
 		if (argc != 3)
 			throw(std::string("Verify you exec like this: ./ircserv <port> <password>"));
 		Server _s(argv[2], argv[1]); 
-		std::cout << getlogin() << std::endl;
 		_s.run_serv();
 	}
 	catch(std::string e)

@@ -125,7 +125,6 @@ Chan* User::findchannel(Chan* channel)
 void User::deleteChan(Chan* channel)
 {
 	std::vector<Chan*>::iterator _iterchan = _chan.begin();
-	std::cout << "User chan size: " << _chan.size() << std::endl;
 	for (size_t i = 0; i < _chan.size(); i++)
 	{
 		if(_chan[i]->get_name() == channel->get_name())
@@ -134,8 +133,6 @@ void User::deleteChan(Chan* channel)
 			return ;
 		}
 		_iterchan++;
-	}
-	std::cout << "User chan size: " << _chan.size() << std::endl;
-	
+	}	
 }
 

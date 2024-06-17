@@ -36,22 +36,20 @@ void Server::set_host()
 	int _test = getaddrinfo(0, _port.c_str(), &_init, &_host);
 	if (_test != 0)
 	{
-		std::cout << errno << std::strerror(errno) << std::endl;
 		throw (-1);
 	}
-	sockaddr_in* ip_access = (sockaddr_in*)_host->ai_addr;
-	std::cout << "ip adresse: " << inet_ntoa(ip_access->sin_addr) << std::endl;
 	gethostname(_hostname, sizeof(_hostname));
 }
 
 void Server::make_sockserv()
 {
+	int en = 1;
 	_sock_serv = socket(_host->ai_family, _host->ai_socktype, _host->ai_protocol);
 	if (_sock_serv == -1)
 	{
-		std::cout << errno << std::strerror(errno) << std::endl;
 		throw -2;
 	}
+	setsockopt(_sock_serv, SOL_SOCKET, SO_REUSEADDR, &en, sizeof(en));
 	User _serv(_sock_serv, *this);
 	_users.insert(std::make_pair(_sock_serv, _serv));
 	makepollfd_fds();
@@ -86,11 +84,10 @@ void Server::readfds_serv(int fd)
 	std::string  _buffer;
 	char _buff_read[_BUFF_SIZE];
 	User* _us = findUser(fd);
-	long _bytes_r = 1;
-	_bytes_r = recv(fd, _buff_read, _BUFF_SIZE, 0);
+	long _bytes_r = 0;
+	_bytes_r = recv(fd, _buff_read, _BUFF_SIZE - 1, 0);
 	if (_bytes_r == -1)
 	{
-		std::cout << "i think the socket is closed" << std::endl;
 		return ;
 	}
 	if (_bytes_r == 0)
@@ -103,19 +100,18 @@ void Server::readfds_serv(int fd)
 			sendfds_serv();
 			_sendfd.clear();
 			_us->deleteChan(_listchannels[i]);
-		}
-		
+		}	
 		_users.erase(fd);
 		close(fd);
 		makepollfd_fds();
 	}
-	_buff_read[_bytes_r] = 0;
+	_buff_read[_BUFF_SIZE - 1] = 0;
 	if (_bytes_r > 0)
 	{
 		_bufferread.append(_buff_read);
-		bzero(_buff_read, _BUFF_SIZE);	
+		std::cout << RED_TEXT << ">>" << _bufferread << RESET_TEXT;
+		bzero(_buff_read, sizeof(_buff_read));	
 	}
-	std::cout << RED_TEXT << ">>" << _bufferread << RESET_TEXT;
 	orders(*_us);
 }
 
@@ -125,7 +121,7 @@ void Server::sendfds_serv()
 	{
 		for (size_t j = 0; j < _sendfd.size(); j++)
 		{	
-			if(_rpl[i].size() < 512)
+			if(_rpl[i].size() < 513)
 			{
 				if (send(_sendfd[j], _rpl[i].c_str(), _rpl[i].size(), 0) == -1)
 					std::cout << "Error Send" << std::endl;
@@ -210,7 +206,6 @@ User* Server::findUser(int fd)
 			return (&i->second);
 		}
 	}
-	std::cout << "User not Found\n";
 	return (NULL);
 }
 
@@ -218,7 +213,6 @@ User* Server::findUserbyname(std::string _name)
 {
 	for (_ituser i = _users.begin(); i != _users.end(); i++)
 	{
-		std::cout << i->second.get_name() << " || " << _name << " = " << _name.compare(i->second.get_name()) << std::endl;
 		if(!_name.compare(0, _name.size(), i->second.get_name()))
 			return (&i->second);
 	}
@@ -323,7 +317,6 @@ void Server::parse_order()
 	{
 		if (_cmd[_nparam + 1] == ':')
 		{
-			std::cout << "find two point" << std::endl;
 			twopoint = 1;
 			_findtwopoint = 1;
 			_nparam++;
@@ -334,6 +327,7 @@ void Server::parse_order()
 			_cmdparse.push_back(_cmd.substr(_nparam + 1));	
 		_nparam = _cmd.find_first_of(' ', _nparam + 1);
 	}
+	_cmd.clear();
 }
 
 void Server::orders(User &user)
@@ -341,26 +335,26 @@ void Server::orders(User &user)
     size_t _end;
 
     {
-        try
+		while ((_end = _bufferread.find("\r\n")) != std::string::npos)	
 		{
-			_findtwopoint = 0;
-       		_end = _bufferread.find("\r\n");
-       		if (_end == std::string::npos)
-       		    throw(std::string("no \\r\\n"));
-			_cmd = _bufferread.substr(0, _end);
-			trim_cmds();
-			parse_order();
-			if (!user.getregis())
-				cmds_register(user);
-			else
-				run_order(user);
-        }
-        catch (std::string &test)
-        {
-            std::cout << test << std::endl;
-        }
-		if (_end != std::string::npos)
-			_bufferread.erase(0, _end + 2);
+  		    try
+			{
+				_findtwopoint = 0;
+				_cmd = _bufferread.substr(0, _end);
+				trim_cmds();
+				parse_order();
+				if (!user.getregis())
+					cmds_register(user);
+				else
+					run_order(user);
+ 	       }
+ 	       catch (std::string &test)
+		   {
+		        std::cout << test << std::endl;
+ 	       }
+			if (_end != std::string::npos)
+				_bufferread.erase(0, _end + 2);
+		}
     } 
 }
 
@@ -427,12 +421,12 @@ void Server::run_order(User &user)
 		}
 		case 2:
 		{	
-			set_rpl(RPL_PING(this, user.get_name(), _cmd.substr(0, 5)));
+			set_rpl(RPL_PING(this, user.get_name(), _cmdparse[1]));
 			break ;
 		}
 		case 3:
 		{
-			set_rpl(RPL_PONG(this, user.get_name(), _cmd.substr(0, 5)));
+			set_rpl(RPL_PONG(this, user.get_name(), _cmdparse[1]));
 			break ;
 		}
 		case 4:
@@ -551,7 +545,6 @@ void Server::modeUser(User &user)
 			throw (std::string("PB syntaxe"));
 		while(isalpha(_cmdparse[j][++_index]) && _index < _cmdparse[j].size())
 		{
-			std::cout << _cmdparse[j][_index] << std::endl;
 			if (std::string("irO").find(_cmdparse[j][_index]) != std::string::npos)
 			{
 				if (_signe == 1 && _mode.find(_cmdparse[j][_index]) == std::string::npos)
@@ -604,7 +597,6 @@ void Server::join(User &user)
 		else
 		{
 			_channelname = _cmdparse[1].substr(_indexchannelname, _cmdparse[1].length() - _indexchannelname);
-			std::cout << "_cmdparse[2]: " << _cmdparse[2] << std::endl;
 			if(_cmdparse.size() == 3)
 				_passwordchannel = _cmdparse[2].substr(_indexpaswordchannel, _cmdparse[2].length() - _indexpaswordchannel);
 			else
@@ -626,7 +618,6 @@ void Server::join(User &user)
 			try {
 				if (_channel->get_mode().find('l') != std::string::npos && _channel->get_limuser() > 0 && _channel->get_limuser() < _channel->get_mapuser().size())
 				{
-					std::cout << "map user: " << _channel->get_mapuser().size() << "\t channel limuser: " << _channel->get_limuser() << std::endl;
 					throw (ERR_CHANNELISFULL(this, user.get_name(), _channelname));
 				}
 				else if (_channel->get_mode().find('i') != std::string::npos && !_channel->finduser(&user))
@@ -666,7 +657,10 @@ void Server::pass_cmd(User &user)
 	if (user.getregis() == 1)
 		throw(ERR_ALREADYREGISTERED(user.get_name(), this));
 	if (_cmdparse[1] != _pass)
+	{
+		std::cout << "erreur mdp: " << _cmdparse[1] << "\t" << _pass << std::endl;
 		throw(ERR_PASSWDMISSMATCH(user.get_name(), this));
+	}
 	user.setflag(1);
 
 }
@@ -815,7 +809,6 @@ void Server::part(User & user)
 void Server::deleteChan(Chan* channel)
 {
 	std::vector<Chan*>::iterator _iterchan = _chan.begin();
-	std::cout << "server chan size: " << _chan.size() << std::endl;
 	for (size_t i = 0; i < _chan.size(); i++)
 	{
 		if(_chan[i]->get_name() == channel->get_name())
@@ -825,14 +818,12 @@ void Server::deleteChan(Chan* channel)
 		}
 		_iterchan++;
 	}
-	std::cout << "server chan size: " << _chan.size() << std::endl;
 }
 
 void Server::quit(User &user)
 {
 
 	std::vector<Chan*> _channels = user.get_channel();
-	std::cout << "channels size: " << _channels.size() << std::endl;
 	if (_channels.size() > 0)
 	{
 		set_rpl(ERROR_(_cmdparse[1]));
