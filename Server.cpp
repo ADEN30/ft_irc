@@ -109,7 +109,7 @@ void Server::readfds_serv(int fd)
 	if (_bytes_r > 0)
 	{
 		_bufferread.append(_buff_read);
-		std::cout << RED_TEXT << ">>" << _bufferread << RESET_TEXT;
+		std::cout << RED_TEXT << ">>" << _bufferread << RESET_TEXT << std::endl;
 		bzero(_buff_read, sizeof(_buff_read));	
 	}
 	orders(*_us);
