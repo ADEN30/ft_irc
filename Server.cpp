@@ -512,7 +512,7 @@ void Server::user(User &user)
 		return ;
 	if (_cmdparse.size() < 5)
 	{
-		return ;
+		throw(ERR_NEEDMOREPARAMS(user.get_name(), this));
 	}
 	if(_cmdparse[1].size() > 0 && _cmdparse[4].size() > 0)
 	{
@@ -634,7 +634,8 @@ void Server::join(User &user)
 				throw(e);
 			}
 		}
-		user.add_channel(_channel);	
+		if (!user.findchannel(_channel))
+			user.add_channel(_channel);	
 		set_rpl(RPL_JOIN(this, user.get_name(), user.get_username(), user.getip(), _channel->get_name()));
 		_channel->send_msg_to(_sendfd, user.getpollfd().fd);
 		if (_sendfd.size() > 1)
