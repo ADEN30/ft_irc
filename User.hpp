@@ -44,6 +44,7 @@ class User
 		std::string get_username();
 		std::string get_usermode();
 		std::vector<Chan*> get_channel();
+		void add_channel(Chan *);
 		bool getflag();
 		char* getip();
 
@@ -59,7 +60,6 @@ class User
 		void set_username(std::string &);
 		void set_realname(std::string &);
 		void set_usermode(std::string &);
-		void set_channel(Chan &);
 		void setflag(bool);
 		void setip(char*);
 };

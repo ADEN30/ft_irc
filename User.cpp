@@ -84,9 +84,9 @@ void User::set_usermode(std::string &usermode)
 	_userMode = usermode;
 }
 
-void User::set_channel(Chan & channel)
+void User::add_channel(Chan* channel)
 {
-	_chan.push_back(&channel);
+	_chan.push_back(channel);
 }
 
 void User::setstr(char * str)

@@ -99,7 +99,9 @@ void Server::readfds_serv(int fd)
 			set_rpl(RPL_PART(this, _us->get_name(), _us->get_username(), _us->getip(), _listchannels[i]->get_name(), std::string("the deconexion is weird !")));
 			sendfds_serv();
 			_sendfd.clear();
+			_listchannels[i]->deleteUser(_us);
 			_us->deleteChan(_listchannels[i]);
+
 		}	
 		_users.erase(fd);
 		close(fd);
@@ -620,7 +622,7 @@ void Server::join(User &user)
 				{
 					throw (ERR_CHANNELISFULL(this, user.get_name(), _channelname));
 				}
-				else if (_channel->get_mode().find('i') != std::string::npos && !_channel->finduser(&user))
+				else if (_channel->get_mode().find('i') != std::string::npos && !user.findchannel(_channel))
 					throw (ERR_INVITEONLYCHAN(this, _channel->get_name(), _channelname));
 				else if (_channel->get_mode().find('k') != std::string::npos && !(_channel->get_password().empty()) && _passwordchannel != _channel->get_password())
 					throw (ERR_BADCHANNELKEY(this, user.get_name(), _channelname));
@@ -632,7 +634,7 @@ void Server::join(User &user)
 				throw(e);
 			}
 		}
-		user.set_channel(*_channel);	
+		user.add_channel(_channel);	
 		set_rpl(RPL_JOIN(this, user.get_name(), user.get_username(), user.getip(), _channel->get_name()));
 		_channel->send_msg_to(_sendfd, user.getpollfd().fd);
 		if (_sendfd.size() > 1)
@@ -683,7 +685,7 @@ void Server::invite(User &user)
 	_sendfd.erase(_sendfd.begin());
 	_sendfd.push_back(findUserbyname(_cmdparse[1])->getpollfd().fd);
 	set_rpl(RPL_INVITEMSG(this, user.get_name(), user.get_username(), user.getip(), _cmdparse[1], _channel->get_name()));
-	_channel->add_user(findUserbyname(_cmdparse[1]));
+	findUserbyname(_cmdparse[1])->add_channel(_channel);
 }
 
 void Server::topic(User &user)
