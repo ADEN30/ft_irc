@@ -4,9 +4,10 @@ std::string parseMode(char c, std::string newmode, Chan* channel)
 {
 	std::string _mode = channel->get_mode();
 	std::string _rpl = "";
+	std::cout << "new MODE: " << newmode << std::endl;
 	for (size_t i = 0; i < newmode.size(); i++)
 	{
-		if(c == '+' &&  std::string("tklbio").find(newmode[i]) != std::string::npos)
+		if(c == '+' &&  std::string("tklio").find(newmode[i]) != std::string::npos)
 		{	
 			if (_mode.find_first_of(newmode[i]) == std::string::npos || std::string("lko").find(newmode[i]) != std::string::npos)
 			{
@@ -15,7 +16,7 @@ std::string parseMode(char c, std::string newmode, Chan* channel)
 				_rpl.push_back(newmode[i]);	
 			}
 		}
-		else if (c == '-' && std::string("tklbio").find(newmode[i]) != std::string::npos)
+		else if (c == '-' && std::string("tklio").find(newmode[i]) != std::string::npos)
 		{
 			if (_mode.find_first_of(newmode[i]) != std::string::npos)
 			{
@@ -25,6 +26,8 @@ std::string parseMode(char c, std::string newmode, Chan* channel)
 					_mode.erase(_mode.find_first_of(newmode[i]), 1);
 				_rpl.push_back(newmode[i]);	
 			}
+			else if (newmode[i] == 'o')
+				_rpl.push_back(newmode[i]);	
 		}
 	}
 	channel->set_mode(_mode);
@@ -59,7 +62,10 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 		try
 		{
 			if (sign == '-' && _cmdparse[2][_indexofletter] == 'o' && _cmdparse.size() > 3)
-				_here->delete_symboleOp(_cmdparse[length_input++]);
+			{
+				std::cout << "delete symbole OP : " << _cmdparse[2][_indexofletter]  << std::endl;
+				_here->delete_symboleOp(_cmdparse[2 + length_input++]);
+			}
 			else
 				_here->set_lk(_cmdparse[2][_indexofletter], "\0");
 			_indexofletter++;
@@ -75,6 +81,7 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 			}	
 			else
 				_indexofletter++;
+			std::cout << e << std::endl;
 		}
 	}
 }
@@ -83,14 +90,13 @@ std::string rplLKO(std::string str, Chan* _here, char sign)
 {
 	std::string _rpl = "";
 	size_t _indexofmode = 0;
-	if (sign == '-')
-		return (_rpl);
+
 	while ((_indexofmode = str.find_first_of("lko", _indexofmode)) != std::string::npos)
 	{	
 		_rpl.push_back(' ');
-		if (str[_indexofmode] == 'l')
+		if (str[_indexofmode] == 'l' && sign != '-')
 			_rpl += NumberToString(_here->get_limuser());
-		else if (str[_indexofmode] == 'k')
+		else if (str[_indexofmode] == 'k' && sign != '-')
 			_rpl += _here->get_password();
 		else if (str[_indexofmode] == 'o')
 			_rpl += _here->getnewop();

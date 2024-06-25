@@ -744,11 +744,15 @@ void Server::kick(User &user)
 			set_rpl(ERR_USERNOTINCHANNEL(this, user.get_name(), _channel->get_name()));
 			sendfds_serv();
 		}
-		else
+		else if (user.get_name() != _nickname)
 		{
+			User* _userkicked;
+			_userkicked = findUserbyname(_nickname);
 			set_rpl(RPL_KICK(this, user.get_name(), user.get_username(), user.getip(), _channel->get_name(), _nickname));
 			_channel->send_msg_to(_sendfd, user.getpollfd().fd);
 			sendfds_serv();
+			_channel->deleteUser(_userkicked);
+			_userkicked->deleteChan(_channel);
 		}
 	}
 
@@ -816,7 +820,7 @@ void Server::deleteChan(Chan* channel)
 	{
 		if(_chan[i]->get_name() == channel->get_name())
 		{
-			delete _chan[i]; //libere la memoire ?
+			delete _chan[i];
 			_chan.erase(_iterchan);
 		}
 		_iterchan++;

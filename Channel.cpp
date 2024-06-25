@@ -91,6 +91,7 @@ void Chan::delete_symboleOp(std::string nick)
 {
 	for (std::map<User*, std::string>::iterator i = _users.begin(); i != _users.end(); i++)
 	{
+		std::cout << "name: " << i->first->get_name() << "\t raws: " << i->second << std::endl;
 		if (i->first->get_name() == nick && i->second.find('@') != std::string::npos)
 		{
 			i->second = "";
