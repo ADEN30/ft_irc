@@ -4,16 +4,16 @@ std::string parseMode(char c, std::string newmode, Chan* channel)
 {
 	std::string _mode = channel->get_mode();
 	std::string _rpl = "";
-	std::cout << "new MODE: " << newmode << std::endl;
 	for (size_t i = 0; i < newmode.size(); i++)
 	{
 		if(c == '+' &&  std::string("tklio").find(newmode[i]) != std::string::npos)
 		{	
-			if (_mode.find_first_of(newmode[i]) == std::string::npos || std::string("lko").find(newmode[i]) != std::string::npos)
+			if (_mode.find(newmode[i]) == std::string::npos || std::string("lko").find(newmode[i]) != std::string::npos)
 			{
-				if (newmode[i] != 'o')
+				if (newmode[i] != 'o' && _mode.find(newmode[i]) == std::string::npos)
 					_mode.push_back(newmode[i]);
-				_rpl.push_back(newmode[i]);	
+				if (_rpl.find(newmode[i]) == std::string::npos)
+					_rpl.push_back(newmode[i]);	
 			}
 		}
 		else if (c == '-' && std::string("tklio").find(newmode[i]) != std::string::npos)
@@ -26,10 +26,11 @@ std::string parseMode(char c, std::string newmode, Chan* channel)
 					_mode.erase(_mode.find_first_of(newmode[i]), 1);
 				_rpl.push_back(newmode[i]);	
 			}
-			else if (newmode[i] == 'o')
+			else if (newmode[i] == 'o' && _rpl.find(newmode[i]) != std::string::npos)
 				_rpl.push_back(newmode[i]);	
 		}
 	}
+	std::cout << "ParseMode done: " << _mode << std::endl;
 	channel->set_mode(_mode);
 	if (!_rpl.empty())
 		_rpl.insert(_rpl.begin(), c);
@@ -46,6 +47,7 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 		try
 		{
 			_here->set_lk(_cmdparse[2][_indexofletter], _cmdparse[2 + length_input]);
+			std::cout << _cmdparse[2 + length_input] << std::endl;
 			_indexofletter++;
 			length_input++;
 		}
@@ -55,6 +57,7 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 				_cmdparse[2].erase(_indexofletter, 1);
 			else
 				_cmdparse[2].clear();
+			std::cout << e << std::endl;
 		}
 	}	
 	while ((_indexofletter = _cmdparse[2].find_first_of("lko", _indexofletter)) != std::string::npos)
@@ -63,7 +66,6 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 		{
 			if (sign == '-' && _cmdparse[2][_indexofletter] == 'o' && _cmdparse.size() > 3)
 			{
-				std::cout << "delete symbole OP : " << _cmdparse[2][_indexofletter]  << std::endl;
 				_here->delete_symboleOp(_cmdparse[2 + length_input++]);
 			}
 			else
@@ -86,22 +88,26 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 	}
 }
 
-std::string rplLKO(std::string str, Chan* _here, char sign)
+std::string rplLKO(Chan* _here, std::string rpl)
 {
 	std::string _rpl = "";
-	size_t _indexofmode = 0;
-
-	while ((_indexofmode = str.find_first_of("lko", _indexofmode)) != std::string::npos)
-	{	
-		_rpl.push_back(' ');
-		if (str[_indexofmode] == 'l' && sign != '-')
+	std::string _mode = _here->get_mode();
+	std::cout << "Mode " << _mode << std::endl;
+		if (_mode.find('l') != std::string::npos && rpl.find('l') != std::string::npos)
+		{
+			_rpl.push_back(' ');
 			_rpl += NumberToString(_here->get_limuser());
-		else if (str[_indexofmode] == 'k' && sign != '-')
+		}
+		if (_mode.find('k') != std::string::npos && rpl.find('k') != std::string::npos)
+		{
+			_rpl.push_back(' ');
 			_rpl += _here->get_password();
-		else if (str[_indexofmode] == 'o')
+		}
+		if (!_here->getnewop().empty() && rpl.find('o') != std::string::npos)
+		{
+			_rpl.push_back(' ');
 			_rpl += _here->getnewop();
-		_indexofmode++;
-	}
+		}
 	return (_rpl);
 }
 
@@ -109,30 +115,44 @@ void Server::modeChannel(User &user)
 {
 	char _sign = '+';
 	std::string _rpl = "";
-	size_t _index = 0;
+	std::string _tmp = "";
+	size_t _index1 = 0;
+	size_t _index2 = 0;
 	Chan* _here = already_channel(to_upper(_cmdparse[1]));
 
 	if (!(_here))
 		throw( ERR_NOSUCHCHANNEL(this, user.get_name(), _cmdparse[1]));
 	else if (_cmdparse.size() == 2)
-		throw(RPL_CHANNELMODEIS(this, user.get_name(), _here->get_name(), _here->get_mode(), rplLKO(_here->get_mode(), _here, _sign)));
+		throw(RPL_CHANNELMODEIS(this, user.get_name(), _here->get_name(), _here->get_mode(), rplLKO(_here, std::string("lko"))));
 	else if (!_here->findoperator(&user))
 		throw (ERR_CHANOPRIVSNEEDED(this, user.get_name(), _here->get_name()));
-	_index = _cmdparse[2].find_first_not_of("+-", _index);	
-	while (_index != std::string::npos && _sign != '\0')
+	_tmp = _cmdparse[2];
+	while ((_index1 = _tmp.find_first_not_of("+-", _index1)) != std::string::npos && _sign != '\0')
 	{
-		if (_cmdparse[2][_index - 1] == '+')	
+		if (_tmp[_index1 - 1] == '+')	
 			_sign = '+';
-		else if (_cmdparse[2][_index - 1] == '-')	
+		else if (_tmp[_index1 - 1] == '-')	
 			_sign = '-';
 		else
 			_sign = '\0';
-		_cmdparse[2] = _cmdparse[2].substr(_index, _cmdparse[2].size() - _index);
+		if ((_index2 = _tmp.find_first_of("+-", _index1)) != std::string::npos)	
+		{
+			std::cout << "find + or - and _index1: " << _index1 << std::endl;
+			_cmdparse[2] = _tmp.substr(_index1, _index2 - 1);
+			_tmp.erase(_index1 - 1, _index2);
+			_index1 = 0;
+		}
+		else 
+		{
+			std::cout << "Don't find + or - and _index1: " << _index1 << std::endl;
+			_cmdparse[2] = _tmp.substr(_index1);
+			_tmp.clear();
+		}
+		std::cout << "_cmdparse[2]: " << _cmdparse[2] << std::endl;
 		parse_lk(_cmdparse, _here, _sign);
-		_rpl += parseMode(_sign, _cmdparse[2].substr(0, _cmdparse[2].size()), _here);
-		_rpl += rplLKO(_cmdparse[2], _here, _sign);
-		_index = _cmdparse[2].find_first_not_of("+-", ++_index);	
+		_rpl += parseMode(_sign, _cmdparse[2], _here);
 	}
+	_rpl += rplLKO(_here, _rpl);
 	if (!_rpl.empty())
 	{
 		_here->send_msg_to(_sendfd, user.getpollfd().fd);
