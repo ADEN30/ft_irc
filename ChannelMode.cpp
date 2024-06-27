@@ -24,9 +24,10 @@ std::string parseMode(char c, std::string newmode, Chan* channel)
 					_mode.clear();
 				else
 					_mode.erase(_mode.find_first_of(newmode[i]), 1);
-				_rpl.push_back(newmode[i]);	
+				if ( _rpl.find(newmode[i]) == std::string::npos)
+					_rpl.push_back(newmode[i]);	
 			}
-			else if (newmode[i] == 'o' && _rpl.find(newmode[i]) != std::string::npos)
+			else if (newmode[i] == 'o' && (_rpl.find(newmode[i]) == std::string::npos))
 				_rpl.push_back(newmode[i]);	
 		}
 	}
@@ -41,15 +42,25 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 {
 	size_t length_input = 1;
 	size_t _indexofletter = 0;
+	std::string _letterdone = "";
 
 	while (sign == '+' && _cmdparse.size() > 2 + length_input && (_indexofletter = _cmdparse[2].find_first_of("lko", _indexofletter)) != std::string::npos)
 	{
 		try
 		{
-			_here->set_lk(_cmdparse[2][_indexofletter], _cmdparse[2 + length_input]);
-			std::cout << _cmdparse[2 + length_input] << std::endl;
+			if (_letterdone.find(_cmdparse[2][_indexofletter]) == std::string::npos)
+			{
+				std::cout << _cmdparse[2 + length_input] << std::endl;
+				_here->set_lk(_cmdparse[2][_indexofletter], _cmdparse[2 + length_input]);
+				_cmdparse.erase(_cmdparse.begin() + 2 + length_input);
+				_letterdone.push_back(_cmdparse[2][_indexofletter]);
+			}
+			else
+			{
+				throw(std::string("already letter is done"));
+			}
+			
 			_indexofletter++;
-			length_input++;
 		}
 		catch(std::string &e)
 		{
@@ -60,15 +71,17 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 			std::cout << e << std::endl;
 		}
 	}	
+	std::cout << _cmdparse[2] << std::endl;
 	while ((_indexofletter = _cmdparse[2].find_first_of("lko", _indexofletter)) != std::string::npos)
 	{
 		try
 		{
 			if (sign == '-' && _cmdparse[2][_indexofletter] == 'o' && _cmdparse.size() > 3)
 			{
-				_here->delete_symboleOp(_cmdparse[2 + length_input++]);
+				_here->delete_symboleOp(_cmdparse[2 + length_input]);
+				_cmdparse.erase(_cmdparse.begin() + 2 + length_input);
 			}
-			else
+			else if (_letterdone.find(_cmdparse[2][_indexofletter]) == std::string::npos)
 				_here->set_lk(_cmdparse[2][_indexofletter], "\0");
 			_indexofletter++;
 		}
