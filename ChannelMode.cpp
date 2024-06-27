@@ -31,7 +31,6 @@ std::string parseMode(char c, std::string newmode, Chan* channel)
 				_rpl.push_back(newmode[i]);	
 		}
 	}
-	std::cout << "ParseMode done: " << _mode << std::endl;
 	channel->set_mode(_mode);
 	if (!_rpl.empty())
 		_rpl.insert(_rpl.begin(), c);
@@ -50,14 +49,13 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 		{
 			if (_letterdone.find(_cmdparse[2][_indexofletter]) == std::string::npos)
 			{
-				std::cout << _cmdparse[2 + length_input] << std::endl;
 				_here->set_lk(_cmdparse[2][_indexofletter], _cmdparse[2 + length_input]);
 				_cmdparse.erase(_cmdparse.begin() + 2 + length_input);
 				_letterdone.push_back(_cmdparse[2][_indexofletter]);
 			}
 			else
 			{
-				throw(std::string("already letter is done"));
+				throw(std::string(""));
 			}
 			
 			_indexofletter++;
@@ -68,10 +66,8 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 				_cmdparse[2].erase(_indexofletter, 1);
 			else
 				_cmdparse[2].clear();
-			std::cout << e << std::endl;
 		}
 	}	
-	std::cout << _cmdparse[2] << std::endl;
 	while ((_indexofletter = _cmdparse[2].find_first_of("lko", _indexofletter)) != std::string::npos)
 	{
 		try
@@ -96,7 +92,6 @@ void parse_lk(std::vector<std::string> & _cmdparse, Chan *_here, char sign)
 			}	
 			else
 				_indexofletter++;
-			std::cout << e << std::endl;
 		}
 	}
 }
@@ -105,7 +100,6 @@ std::string rplLKO(Chan* _here, std::string rpl)
 {
 	std::string _rpl = "";
 	std::string _mode = _here->get_mode();
-	std::cout << "Mode " << _mode << std::endl;
 		if (_mode.find('l') != std::string::npos && rpl.find('l') != std::string::npos)
 		{
 			_rpl.push_back(' ');
@@ -150,18 +144,15 @@ void Server::modeChannel(User &user)
 			_sign = '\0';
 		if ((_index2 = _tmp.find_first_of("+-", _index1)) != std::string::npos)	
 		{
-			std::cout << "find + or - and _index1: " << _index1 << std::endl;
 			_cmdparse[2] = _tmp.substr(_index1, _index2 - 1);
 			_tmp.erase(_index1 - 1, _index2);
 			_index1 = 0;
 		}
 		else 
 		{
-			std::cout << "Don't find + or - and _index1: " << _index1 << std::endl;
 			_cmdparse[2] = _tmp.substr(_index1);
 			_tmp.clear();
 		}
-		std::cout << "_cmdparse[2]: " << _cmdparse[2] << std::endl;
 		parse_lk(_cmdparse, _here, _sign);
 		_rpl += parseMode(_sign, _cmdparse[2], _here);
 	}
